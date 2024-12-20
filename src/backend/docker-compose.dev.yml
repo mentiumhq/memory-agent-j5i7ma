@@ -1,0 +1,115 @@
+version: "3.8"
+
+services:
+  memory-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      target: development
+    volumes:
+      - ./src:/app/src:ro  # Source code mounted read-only for hot-reloading
+      - ./data:/app/data  # SQLite database persistence
+      - ./tests:/app/tests:ro  # Test files mounted read-only
+    ports:
+      - "8000:8000"  # FastAPI application
+      - "5678:5678"  # Remote debugging port
+    environment:
+      - PYTHONPATH=/app/src
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - DEBUG=true
+      - APP_ENV=development
+      - TEMPORAL_HOST=temporal
+      - TEMPORAL_PORT=7233
+      - MINIO_HOST=minio
+      - MINIO_PORT=9000
+      - SQLITE_PATH=/app/data/memory_agent.db
+      - ENABLE_DEBUGGER=true
+    depends_on:
+      temporal:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: "4G"
+        reservations:
+          cpus: "1"
+          memory: "2G"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - memory-agent-dev
+    restart: unless-stopped
+
+  temporal:
+    image: temporalio/server:latest  # Latest stable Temporal server
+    ports:
+      - "7233:7233"  # gRPC API
+      - "8088:8088"  # Web UI
+    environment:
+      - TEMPORAL_PERSISTENCE_SCHEMA=memory_agent
+      - TEMPORAL_CLI_ADDRESS=temporal:7233
+      - TEMPORAL_HISTORY_RETENTION=1
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: "2G"
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - memory-agent-dev
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest  # Latest stable MinIO server
+    ports:
+      - "9000:9000"  # API port
+      - "9001:9001"  # Console port
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+      - MINIO_BROWSER_REDIRECT_URL=http://localhost:9001
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ':9001'
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: "1G"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - memory-agent-dev
+    restart: unless-stopped
+
+volumes:
+  minio_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/data/minio
+      o: bind
+
+networks:
+  memory-agent-dev:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: memory-agent-dev
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
