@@ -1,0 +1,111 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+dist/
+build/
+*.egg-info/
+*.egg
+.eggs/
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+.env
+.env.*
+!.env.example
+
+# IDE and Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing and Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+coverage.xml
+nosetests.xml
+.hypothesis/
+
+# Local Development
+*.db
+*.sqlite3
+*.sqlite
+local_settings.py
+*.local.*
+
+# Logs and Temporary
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Generated Files
+src/protos/*_pb2.py
+src/protos/*_pb2_grpc.py
+*.generated.*
+
+# Docker
+docker-compose.override.yml
+.docker/
+*.env.docker
+
+# Temporal
+.temporal/
+temporal_history/
+workflow_data/
+
+# Infrastructure
+*.tfvars
+!terraform.tfvars.example
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Cloud Provider
+.aws/
+credentials
+config
+.boto
+*.pem
+
+# Security
+*.key
+*.pem
+*.crt
+*.csr
+*.p12
+*.pfx
+security-scan-results/
+vulnerability-report/
+
+# Dependencies
+node_modules/
+poetry.lock
+package-lock.json
+yarn.lock
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+Desktop.ini
+ehthumbs.db
+Icon?
