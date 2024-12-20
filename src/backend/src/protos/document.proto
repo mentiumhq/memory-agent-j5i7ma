@@ -1,0 +1,204 @@
+syntax = "proto3";
+
+package memory_agent.document.v1;
+
+import "google/protobuf/timestamp.proto";  // v3.0.0
+import "google/protobuf/struct.proto";     // v3.0.0
+
+// Document represents the core document structure with validation and versioning
+message Document {
+    // Unique identifier for the document
+    string id = 1;
+
+    // Main content of the document
+    string content = 2;
+
+    // Format of the document (e.g., "markdown", "text", "json")
+    string format = 3;
+
+    // Timestamp when document was created
+    google.protobuf.Timestamp created_at = 4;
+
+    // Timestamp when document was last updated
+    google.protobuf.Timestamp updated_at = 5;
+
+    // Flexible metadata storage using protobuf Struct
+    google.protobuf.Struct metadata = 6;
+
+    // Total token count for the document
+    int32 token_count = 7;
+
+    // Document version for optimistic concurrency control
+    int32 version = 8;
+
+    // List of document chunks for token-aware processing
+    repeated DocumentChunk chunks = 9;
+
+    // Soft deletion flag
+    bool is_deleted = 10;
+}
+
+// DocumentChunk represents a token-aware segment of a document
+message DocumentChunk {
+    // Unique identifier for the chunk
+    string id = 1;
+
+    // Reference to parent document
+    string document_id = 2;
+
+    // Content of this specific chunk
+    string content = 3;
+
+    // Sequential number of this chunk within document
+    int32 chunk_number = 4;
+
+    // Token count for this specific chunk
+    int32 token_count = 5;
+
+    // Maximum allowed tokens per chunk (e.g., 4K for GPT-3.5, 8K for GPT-4)
+    int32 max_tokens = 6;
+
+    // Vector embedding for similarity search
+    bytes embedding = 7;
+
+    // Version of embedding model used
+    float embedding_version = 8;
+}
+
+// StoreRequest represents an enhanced document storage request
+message StoreRequest {
+    // Document content to store
+    string content = 1;
+
+    // Format of the document
+    string format = 2;
+
+    // Additional metadata for the document
+    google.protobuf.Struct metadata = 3;
+
+    // Desired chunk size in tokens (optional)
+    int32 chunk_size = 4;
+
+    // Flag to generate embeddings during storage
+    bool generate_embeddings = 5;
+}
+
+// StoreResponse provides detailed feedback for storage operations
+message StoreResponse {
+    // ID of the stored document
+    string document_id = 1;
+
+    // Operation success indicator
+    bool success = 2;
+
+    // Detailed message about the operation
+    string message = 3;
+
+    // Number of chunks created
+    int32 chunks_created = 4;
+
+    // List of non-critical warnings
+    repeated string warnings = 5;
+}
+
+// GetRequest defines parameters for document retrieval
+message GetRequest {
+    // ID of document to retrieve
+    string document_id = 1;
+
+    // Flag to include chunk data
+    bool include_chunks = 2;
+
+    // Flag to include embedding data
+    bool include_embeddings = 3;
+}
+
+// GetResponse wraps document retrieval results
+message GetResponse {
+    // Retrieved document
+    Document document = 1;
+
+    // Operation success indicator
+    bool success = 2;
+
+    // Detailed message about the operation
+    string message = 3;
+
+    // Timestamp of retrieval
+    google.protobuf.Timestamp retrieved_at = 4;
+}
+
+// SearchRequest defines enhanced search parameters
+message SearchRequest {
+    // Search query text
+    string query = 1;
+
+    // Search strategy to use
+    SearchStrategy strategy = 2;
+
+    // Additional search filters
+    google.protobuf.Struct filters = 3;
+
+    // Maximum number of results to return
+    int32 limit = 4;
+
+    // Number of results to skip (pagination)
+    int32 offset = 5;
+
+    // Field to sort results by
+    string sort_field = 6;
+
+    // Sort direction
+    SortOrder sort_order = 7;
+
+    // Minimum similarity threshold for vector search
+    float similarity_threshold = 8;
+}
+
+// SearchResponse provides comprehensive search results
+message SearchResponse {
+    // List of matching documents
+    repeated Document documents = 1;
+
+    // Confidence scores for each document
+    repeated float confidence_scores = 2;
+
+    // Operation success indicator
+    bool success = 3;
+
+    // Detailed message about the operation
+    string message = 4;
+
+    // Total number of matching results
+    int32 total_results = 5;
+
+    // Additional metadata about the search operation
+    google.protobuf.Struct search_metadata = 6;
+}
+
+// SearchStrategy defines available search approaches
+enum SearchStrategy {
+    // Vector similarity-based search
+    VECTOR_SEARCH = 0;
+
+    // Pure LLM-based search
+    LLM_SEARCH = 1;
+
+    // Combined vector and LLM search
+    HYBRID_SEARCH = 2;
+
+    // RAG with Knowledge Graph search
+    RAG_KG_SEARCH = 3;
+
+    // Fallback search strategy
+    FALLBACK_SEARCH = 4;
+}
+
+// SortOrder defines result ordering options
+enum SortOrder {
+    // Ascending order
+    ASCENDING = 0;
+
+    // Descending order
+    DESCENDING = 1;
+}
