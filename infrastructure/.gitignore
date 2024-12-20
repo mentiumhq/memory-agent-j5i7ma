@@ -1,0 +1,93 @@
+# Terraform variable files containing sensitive configuration
+*.tfvars
+!terraform.tfvars.example
+
+# Terraform state files and backups
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Terraform provider and module cache
+.terraform/
+
+# Terraform dependency lock file
+.terraform.lock.hcl
+
+# Terraform crash logs
+crash.log
+crash.*.log
+
+# Terraform override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Log files
+*.log
+logs/
+tmp/
+
+# Local development and environment-specific files
+**/local.*
+**/*.local
+.envrc
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+
+# AWS credentials and config files
+.aws/
+aws.credentials
+aws.config
+
+# Sensitive documentation files
+**/secrets.md
+**/credentials.md
+**/private.md
+
+# Build artifacts
+*.zip
+*.tar.gz
+dist/
+build/
+
+# Certificate files
+*.pem
+*.key
+*.crt
+*.cer
+*.der
+*.p12
+*.pfx
+
+# Kubernetes local config
+kubeconfig
+*.kubeconfig
+
+# Script backups and temporary files
+*.sh.bak
+*.sh.tmp
