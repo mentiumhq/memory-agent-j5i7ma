@@ -1,0 +1,177 @@
+# Terraform Variables Example File
+# Version: 1.0
+# This file provides comprehensive configuration templates for infrastructure deployment
+# across AWS and Temporal resources with environment-specific settings and security considerations.
+
+# Core Environment Configuration
+# Validation: Must be one of: development, staging, production
+environment = "development"
+
+# AWS Region Configuration
+# Primary region with failover support
+aws_region = "us-west-2"
+
+# Application Identification
+app_name = "memory-agent"
+
+# Container Resource Allocation
+# CPU units (1024 = 1 vCPU)
+container_cpu = {
+  development = 2048  # 2 vCPU
+  staging     = 4096  # 4 vCPU
+  production  = 8192  # 8 vCPU
+}
+
+# Memory allocation in MB
+container_memory = {
+  development = 4096   # 4 GB
+  staging     = 8192   # 8 GB
+  production  = 16384  # 16 GB
+}
+
+# Storage Configuration
+storage_configuration = {
+  document_storage = {
+    development = 20  # 20 GB SSD
+    staging     = 100 # 100 GB SSD
+    production  = 500 # 500 GB SSD
+  }
+  backup_retention_days = {
+    development = 7   # 1 week
+    staging     = 30  # 1 month
+    production  = 90  # 3 months
+  }
+  encryption = {
+    algorithm     = "AES-256"
+    kms_key_rotation = true
+  }
+}
+
+# Network Configuration
+network_configuration = {
+  bandwidth_mbps = {
+    development = 100
+    staging     = 1000
+    production  = 10000
+  }
+  security_groups = {
+    inbound_ports  = [80, 443, 8233]  # HTTP, HTTPS, Temporal
+    outbound_ports = [443]            # HTTPS only
+  }
+  vpc_configuration = {
+    enable_flow_logs = true
+    enable_vpc_endpoints = true
+  }
+}
+
+# Monitoring and Observability
+monitoring_configuration = {
+  metrics_resolution = 60  # seconds
+  log_retention_days = 30
+  alarm_evaluation_periods = 3
+  custom_metrics = {
+    document_processing_time = true
+    retrieval_latency       = true
+    storage_operations      = true
+    security_events        = true
+    api_latency           = true
+  }
+  alerts = {
+    cpu_threshold    = 80
+    memory_threshold = 85
+    error_rate      = 1
+  }
+}
+
+# Temporal Workflow Configuration
+temporal_configuration = {
+  namespace_name      = "memory-agent-${var.environment}"
+  retention_period    = "30 days"
+  history_archival    = true
+  visibility_archival = true
+  worker_configuration = {
+    task_queue        = "memory-agent-tasks"
+    max_concurrent    = 50
+    polling_interval  = 1000
+  }
+}
+
+# Search and Indexing Configuration
+search_attributes = {
+  DocumentID            = "Keyword"
+  DocumentFormat        = "Keyword"
+  TokenCount           = "Int"
+  LastAccessed         = "DateTime"
+  VectorEmbedding      = "Binary"
+  MetadataKeys         = "KeywordList"
+  RetrievalStrategy    = "Keyword"
+  ProcessingStatus     = "Keyword"
+  SecurityClassification = "Keyword"
+}
+
+# Vector Index Configuration
+vector_index_params = {
+  dim              = 1536  # OpenAI embedding dimension
+  m                = 16    # HNSW graph parameter
+  ef_construction  = 200   # Index build quality
+  ef_search        = 100   # Search quality
+  max_elements     = 1000000
+}
+
+# Auto-scaling Configuration
+autoscaling_configuration = {
+  min_capacity = {
+    development = 1
+    staging     = 2
+    production  = 3
+  }
+  max_capacity = {
+    development = 2
+    staging     = 4
+    production  = 10
+  }
+  target_cpu_utilization    = 70
+  target_memory_utilization = 75
+}
+
+# Security Configuration
+security_configuration = {
+  enable_encryption_at_rest = true
+  enable_encryption_in_transit = true
+  enable_iam_authentication = true
+  enable_vpc_endpoints = true
+  ssl_policy = "ELBSecurityPolicy-TLS-1-2-2017-01"
+  backup_encryption = true
+}
+
+# Resource Tagging Strategy
+tags = {
+  Project             = "Memory Agent"
+  ManagedBy          = "Terraform"
+  Environment        = "${var.environment}"
+  CostCenter         = "AI-Services"
+  SecurityCompliance = "Required"
+  DataClassification = "Internal"
+  BackupPolicy      = "Required"
+  MonitoringLevel   = "Enhanced"
+}
+
+# Backup Configuration
+backup_configuration = {
+  enable_automated_backups = true
+  backup_window           = "03:00-04:00"
+  backup_retention_period = {
+    development = 7
+    staging     = 14
+    production  = 30
+  }
+  enable_point_in_time_recovery = true
+}
+
+# Performance Configuration
+performance_configuration = {
+  enable_performance_insights = true
+  performance_retention_period = 7
+  enable_enhanced_monitoring = true
+  monitoring_interval = 60
+}
