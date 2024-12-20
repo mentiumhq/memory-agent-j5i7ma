@@ -1,0 +1,66 @@
+MIT License
+
+Copyright (c) 2024 Memory Agent Project Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Additional Terms for AI/LLM Usage:
+
+1. AI/LLM Integration
+   - Integration with AI/LLM systems is permitted with proper attribution to the Memory Agent project
+   - Usage must comply with the project's data privacy guidelines and security policies
+   - Integration must not be used for malicious purposes or applications
+
+2. Model Training
+   - Usage of the Software for model training is permitted
+   - Training data must comply with data privacy requirements specified in project documentation
+   - Models trained using the Software must maintain appropriate safeguards against misuse
+
+3. API Usage
+   - API access is subject to rate limiting and security policies
+   - Users must implement specified security controls
+   - Usage patterns must not compromise system integrity or performance
+
+Security Requirements:
+
+1. All implementations must comply with security policies detailed in SECURITY.md
+2. Security vulnerabilities must be reported according to the process outlined in SECURITY.md
+3. Users must implement and maintain security controls as specified in project documentation
+4. Data protection measures must be implemented as per security guidelines
+
+Contribution Guidelines:
+
+1. All contributions must follow the guidelines specified in CONTRIBUTING.md
+2. Contributors must adhere to the project's code of conduct
+3. Contributions are subject to review under the project's governance model
+4. Acceptance of contributions is at the discretion of project maintainers
+
+Limitations and Disclaimers:
+
+1. No warranty is provided for AI/LLM integrations or model training outcomes
+2. The project is not liable for any misuse of data or malicious applications
+3. Users are responsible for maintaining compliance with all applicable laws and regulations
+4. The project reserves the right to modify these terms for future versions
+
+For detailed information about:
+- Security policies and vulnerability reporting: See SECURITY.md
+- Contribution process and governance: See CONTRIBUTING.md
+- Data privacy requirements: See project documentation
+
+End of License
