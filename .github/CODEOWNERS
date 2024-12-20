@@ -1,0 +1,58 @@
+# This file defines code ownership and required reviewers for different parts of the codebase
+# Format: pattern  owner1 owner2 ...
+
+# Security-critical components requiring strict review (2 reviews required)
+src/backend/src/core/security.py @memory-agent/security-team @memory-agent/core-team
+src/backend/src/core/encryption.py @memory-agent/security-team
+src/backend/src/core/auth.py @memory-agent/security-team
+
+# Workflow implementations and configurations
+src/backend/src/workflows/* @memory-agent/workflow-team
+
+# LLM and ML components
+src/backend/src/services/llm.py @memory-agent/ml-team
+src/backend/src/services/embedding.py @memory-agent/ml-team
+
+# Infrastructure and deployment (2 reviews required)
+infrastructure/** @memory-agent/devops-team @memory-agent/security-team
+.github/workflows/* @memory-agent/devops-team
+
+# Database components
+src/backend/src/db/migrations/* @memory-agent/db-team
+
+# Test implementations
+src/backend/tests/** @memory-agent/qa-team
+
+# Documentation
+docs/* @memory-agent/core-team
+
+# Default ownership - Core team owns any files not matched above
+* @memory-agent/core-team
+
+# Special review requirements for critical paths
+# Security implementations require both security and core team review
+src/backend/src/core/security.py @memory-agent/security-team @memory-agent/core-team
+src/backend/src/core/encryption.py @memory-agent/security-team @memory-agent/core-team
+src/backend/src/core/auth.py @memory-agent/security-team @memory-agent/core-team
+
+# Infrastructure changes require both DevOps and security team review
+infrastructure/** @memory-agent/devops-team @memory-agent/security-team
+.github/workflows/** @memory-agent/devops-team @memory-agent/security-team
+
+# API and service interfaces require core team review
+src/backend/src/api/** @memory-agent/core-team
+src/backend/src/services/** @memory-agent/core-team
+
+# Configuration files require DevOps review
+*.yaml @memory-agent/devops-team
+*.yml @memory-agent/devops-team
+Dockerfile* @memory-agent/devops-team
+docker-compose* @memory-agent/devops-team
+
+# Package dependencies require security review
+requirements.txt @memory-agent/security-team
+poetry.lock @memory-agent/security-team
+pyproject.toml @memory-agent/security-team
+
+# Root level configuration requires core team approval
+/*.* @memory-agent/core-team
