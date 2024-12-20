@@ -1,0 +1,130 @@
+syntax = "proto3";
+
+package memory_agent.service.v1;
+
+import "google/protobuf/empty.proto";        // v3.0.0
+import "google/protobuf/timestamp.proto";    // v3.0.0
+import "document.proto";
+
+option go_package = "memory_agent/service/v1";
+
+// MemoryAgentService provides the core gRPC interface for document operations
+service MemoryAgentService {
+    // StoreDocument handles document storage with comprehensive validation
+    // Returns detailed status information and metadata about the storage operation
+    rpc StoreDocument(memory_agent.document.v1.StoreRequest) returns (memory_agent.document.v1.StoreResponse) {
+        option (google.api.http) = {
+            post: "/v1/documents"
+            body: "*"
+        };
+    }
+
+    // GetDocument retrieves documents with streaming support for large documents
+    // Returns a stream of document chunks with progress updates
+    rpc GetDocument(memory_agent.document.v1.GetRequest) returns (stream memory_agent.document.v1.GetResponse) {
+        option (google.api.http) = {
+            get: "/v1/documents/{document_id}"
+        };
+        option (google.api.method_signature) = "document_id";
+    }
+
+    // SearchDocuments performs advanced document search with multiple strategies
+    // Returns a stream of matching documents with relevance scores
+    rpc SearchDocuments(memory_agent.document.v1.SearchRequest) returns (stream memory_agent.document.v1.SearchResponse) {
+        option (google.api.http) = {
+            post: "/v1/documents/search"
+            body: "*"
+        };
+    }
+}
+
+// HealthService provides comprehensive health monitoring capabilities
+service HealthService {
+    // Check performs a comprehensive system health check
+    // Returns detailed status information about all system components
+    rpc Check(google.protobuf.Empty) returns (HealthResponse) {
+        option (google.api.http) = {
+            get: "/v1/health"
+        };
+    }
+
+    // Watch establishes a streaming connection for continuous health monitoring
+    // Returns a stream of health status updates
+    rpc Watch(google.protobuf.Empty) returns (stream HealthResponse) {
+        option (google.api.http) = {
+            get: "/v1/health/watch"
+        };
+    }
+}
+
+// HealthResponse provides detailed system health information
+message HealthResponse {
+    // Overall system status
+    Status status = 1;
+
+    // Detailed status messages for each component
+    map<string, ComponentStatus> components = 2;
+
+    // System version information
+    string version = 3;
+
+    // Timestamp of the health check
+    google.protobuf.Timestamp timestamp = 4;
+
+    // System metrics
+    SystemMetrics metrics = 5;
+}
+
+// Status represents the overall system health status
+enum Status {
+    // System is fully operational
+    SERVING = 0;
+
+    // System is operational but experiencing issues
+    DEGRADED = 1;
+
+    // System is not operational
+    NOT_SERVING = 2;
+}
+
+// ComponentStatus provides detailed status for individual components
+message ComponentStatus {
+    // Status of the component
+    Status status = 1;
+
+    // Detailed status message
+    string message = 2;
+
+    // Last successful check timestamp
+    google.protobuf.Timestamp last_check = 3;
+
+    // Component-specific metrics
+    map<string, string> metrics = 4;
+}
+
+// SystemMetrics provides detailed system performance metrics
+message SystemMetrics {
+    // CPU usage percentage
+    float cpu_usage = 1;
+
+    // Memory usage in bytes
+    int64 memory_usage = 2;
+
+    // Storage usage in bytes
+    int64 storage_usage = 3;
+
+    // Request rate per second
+    float request_rate = 4;
+
+    // Average response time in milliseconds
+    float response_time = 5;
+
+    // Error rate percentage
+    float error_rate = 6;
+
+    // Number of active connections
+    int32 active_connections = 7;
+
+    // Queue depth for pending requests
+    int32 queue_depth = 8;
+}
