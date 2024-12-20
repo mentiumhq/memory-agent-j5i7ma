@@ -1,0 +1,150 @@
+name: CD
+
+# Trigger on successful completion of CI workflow on main branch
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+
+# Environment variables
+env:
+  TF_VERSION: "1.5.x"
+  AWS_REGION: "us-west-2"
+  DOCKER_BUILDKIT: "1"
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+        id: ecr-login
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+      
+      - name: Initialize Terraform
+        working-directory: ./infrastructure/aws
+        run: |
+          terraform init
+          terraform workspace select staging
+      
+      - name: Deploy to Staging
+        working-directory: ./infrastructure/aws
+        run: |
+          terraform plan -out=tfplan
+          terraform apply -auto-approve tfplan
+      
+      - name: Run Integration Tests
+        run: |
+          echo "Running integration tests against staging environment"
+          # Add integration test commands here
+          timeout 300 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' ${{ secrets.STAGING_API_URL }}/health)" != "200" ]]; do sleep 5; done'
+      
+      - name: Monitor Deployment Health
+        run: |
+          # Check deployment health metrics
+          curl -X GET ${{ secrets.STAGING_API_URL }}/metrics
+          # Verify error rate is below threshold
+          if [[ $(curl -s ${{ secrets.STAGING_API_URL }}/metrics | jq '.error_rate') > 1 ]]; then
+            echo "Error rate exceeds threshold"
+            exit 1
+          fi
+
+  deploy-production:
+    name: Deploy to Production
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://api.memory-agent.prod
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+        id: ecr-login
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+      
+      - name: Initialize Terraform
+        working-directory: ./infrastructure/aws
+        run: |
+          terraform init
+          terraform workspace select production
+      
+      - name: Deploy to Production
+        working-directory: ./infrastructure/aws
+        run: |
+          terraform plan -out=tfplan
+          terraform apply -auto-approve tfplan
+      
+      - name: Monitor Production Health
+        run: |
+          # Initial health check
+          curl -f ${{ secrets.PROD_API_URL }}/health
+          
+          # Monitor deployment for 5 minutes
+          for i in {1..30}; do
+            response_time=$(curl -w "%{time_total}" -s -o /dev/null ${{ secrets.PROD_API_URL }}/health)
+            if (( $(echo "$response_time > 1" | bc -l) )); then
+              echo "Response time exceeds 1s threshold"
+              exit 1
+            fi
+            sleep 10
+          done
+      
+      - name: Verify Production Endpoints
+        run: |
+          # Verify critical endpoints
+          endpoints=("/health" "/v1/documents/search" "/metrics")
+          for endpoint in "${endpoints[@]}"; do
+            if ! curl -f ${{ secrets.PROD_API_URL }}$endpoint; then
+              echo "Endpoint $endpoint verification failed"
+              exit 1
+            fi
+          done
+      
+      - name: Rollback on Failure
+        if: failure()
+        working-directory: ./infrastructure/aws
+        run: |
+          # Revert to last known good state
+          terraform workspace select production
+          terraform plan -out=tfplan -var="app_version=${{ github.event.workflow_run.head_sha }}"
+          terraform apply -auto-approve tfplan
+          
+          # Notify team of rollback
+          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+            -H 'Content-Type: application/json' \
+            -d '{"text":"⚠️ Production deployment failed. Automatic rollback initiated."}'
