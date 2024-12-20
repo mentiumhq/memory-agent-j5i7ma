@@ -1,0 +1,164 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop, 'feature/*' ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  PYTHON_VERSION: '3.11'
+  POETRY_VERSION: '1.5.1'
+  DOCKER_BUILDKIT: '1'
+  CI: 'true'
+
+jobs:
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 - --version ${{ env.POETRY_VERSION }}
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
+
+      - name: Install dependencies
+        working-directory: src/backend
+        run: poetry install --no-interaction --no-root
+
+      - name: Run Black formatter check
+        working-directory: src/backend
+        run: poetry run black --check .
+
+      - name: Run mypy type checker
+        working-directory: src/backend
+        run: poetry run mypy .
+
+      - name: Run pre-commit hooks
+        run: |
+          pip install pre-commit
+          pre-commit run --all-files
+
+      - name: Validate pyproject.toml
+        working-directory: src/backend
+        run: poetry check
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 - --version ${{ env.POETRY_VERSION }}
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
+
+      - name: Install dependencies
+        working-directory: src/backend
+        run: poetry install --no-interaction --no-root
+
+      - name: Run pytest with coverage
+        working-directory: src/backend
+        run: poetry run pytest --cov=. --cov-report=xml --cov-report=term-missing
+
+      - name: Verify coverage threshold
+        working-directory: src/backend
+        run: |
+          COVERAGE=$(poetry run coverage report | grep TOTAL | awk '{print $4}' | sed 's/%//')
+          if (( $(echo "$COVERAGE < 90" | bc -l) )); then
+            echo "Code coverage ($COVERAGE%) is below the required threshold (90%)"
+            exit 1
+          fi
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: src/backend/coverage.xml
+          fail_ci_if_error: true
+
+  security-scan:
+    name: Security Scans
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Run Snyk Python scan
+        uses: snyk/actions/python@v1
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: test
+          args: --severity-threshold=high
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Run Trivy container scan
+        run: |
+          docker build -t memory-agent:${{ github.sha }} src/backend
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image --severity HIGH,CRITICAL \
+            memory-agent:${{ github.sha }}
+
+  build:
+    name: Build Container
+    needs: [code-quality, test, security-scan]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: src/backend
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: |
+            memory-agent:latest
+            memory-agent:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test container
+        run: |
+          docker run --rm memory-agent:${{ github.sha }} python -m pytest /app/tests
+
+      - name: Clean up
+        if: always()
+        run: |
+          docker image rm memory-agent:${{ github.sha }} || true
+          docker image rm memory-agent:latest || true
+          docker builder prune -f
