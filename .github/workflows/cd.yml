@@ -35,7 +35,7 @@ jobs:
         id: ecr-login
       
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
@@ -92,7 +92,7 @@ jobs:
         id: ecr-login
       
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
