@@ -1,0 +1,84 @@
+version: "3.8"
+
+services:
+  memory-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app/src
+      - APP_ENV=production
+      - TEMPORAL_HOST=temporal
+      - TEMPORAL_PORT=7233
+      - MINIO_HOST=minio
+      - MINIO_PORT=9000
+    depends_on:
+      - temporal
+      - minio
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - memory-agent-prod
+
+  temporal:
+    image: temporalio/server:latest  # version: latest
+    ports:
+      - "7233:7233"  # gRPC API
+      - "8088:8088"  # Web UI
+    environment:
+      - TEMPORAL_PERSISTENCE_SCHEMA=memory_agent
+      - TEMPORAL_CLI_ADDRESS=temporal:7233
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+    networks:
+      - memory-agent-prod
+
+  minio:
+    image: minio/minio:latest  # version: latest
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    volumes:
+      - ./data/minio:/data
+    command: server /data --console-address ':9001'
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+    networks:
+      - memory-agent-prod
+
+volumes:
+  data:
+    driver: local
+
+networks:
+  memory-agent-prod:
+    driver: overlay
+    attachable: true
+    internal: true
