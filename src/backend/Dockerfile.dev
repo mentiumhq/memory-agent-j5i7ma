@@ -1,0 +1,63 @@
+# Stage 1: Python base image with core dependencies
+FROM python:3.11-slim as python-base
+
+# System dependencies and build tools
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configure Python environment
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app/src \
+    # Poetry configuration
+    POETRY_VERSION=1.5.1 \
+    POETRY_HOME=/opt/poetry \
+    POETRY_VIRTUALENVS_IN_PROJECT=true \
+    POETRY_NO_INTERACTION=1 \
+    POETRY_CACHE_DIR=/opt/poetry/cache \
+    # Prevent Python from writing bytecode files
+    PYTHONDONTWRITEBYTECODE=1 \
+    # Path configuration
+    PATH="/opt/poetry/bin:$PATH"
+
+# Install Poetry for dependency management
+RUN curl -sSL https://install.python-poetry.org | python - \
+    && chmod a+x /opt/poetry/bin/poetry
+
+# Stage 2: Development environment with debugging capabilities
+FROM python-base as development
+
+# Set development-specific environment variables
+ENV DEBUG=true \
+    APP_ENV=development \
+    DEBUGPY_PORT=5678 \
+    UVICORN_PORT=8000 \
+    UVICORN_RELOAD=true
+
+WORKDIR /app
+
+# Copy dependency configuration files
+COPY pyproject.toml poetry.lock ./
+
+# Install project dependencies including development packages
+RUN poetry install --no-root \
+    && poetry run pip install debugpy==1.6.7
+
+# Create volume mount points for development
+VOLUME ["/app", "/opt/poetry/cache"]
+
+# Expose ports for application and debugger
+EXPOSE $UVICORN_PORT $DEBUGPY_PORT
+
+# Copy application code (will be overridden by volume mount in development)
+COPY . .
+
+# Start FastAPI application with debugger and hot-reload
+ENTRYPOINT ["poetry", "run", "python", "-m", "debugpy", "--listen", "0.0.0.0:5678", \
+           "-m", "uvicorn", "src.main:app", \
+           "--host", "0.0.0.0", \
+           "--port", "8000", \
+           "--reload", \
+           "--reload-dir", "src"]
